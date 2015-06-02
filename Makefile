@@ -1,5 +1,6 @@
 CFLAGS = -fopenmp -Wall -O0
-CC = gcc-4.9
+CC = gcc
+LIBS=-lm
 
 SOURCES = $(wildcard *.c)
 EXES = $(SOURCES:.c=)
@@ -10,4 +11,4 @@ clean:
 	rm -f $(EXES)
 
 %: %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ $(LIBS)

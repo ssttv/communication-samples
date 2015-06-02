@@ -1,6 +1,6 @@
-blur
-gauss
+gauss-blur
+gauss-seidel
 init
-matrix
-prodcons_pipe
+matrix-mul
+prodcons
 reduce
