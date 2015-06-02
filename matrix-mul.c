@@ -2,9 +2,11 @@
 
 #define N 1024
 
+int A[N][N], B[N][N], C[N][N];
+
 int main(int argc, char const *argv[])
 {
-	int A[N][N], B[N][N], C[N][N], i, j, k;
+	int i=0, j=0, k=0;
 
 	#pragma omp parallel for
 	for(i=0; i<N; i++) {
