@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+ 
+/*
+ * Команда запуска: g++ gs-problem.c -fopenmp -std=gnu++11  
+ */
 
 void test_system
  ( int n, double **A, double *b );
@@ -9,6 +13,25 @@ void run_gauss_seidel_method
  ( int p, int n, double **A, double *b,
    double epsilon, int maxit,
    int *numit, double *x );
+
+/*
+ * Тут запускается метод Гаусса-Зейдееля для A*x = b.
+ *
+ * Вход:
+ *   p        число потоков;
+ *   n        размерность матрицы;
+ *   A        матрица n на n где A[i][i] /= 0 (диагональная);
+ *   b        n-размерный вектор;
+ *   epsilon  мера погрешность;
+ *   maxit    макисмальное число итераций;
+ *   x        начальный вектор для отдельной итерации.
+ *
+ * ON RETURN :
+ *   numit    число пройденных итераций;
+ *   x        аппроксимация решения A*x = b. 
+ * */
+
+
 
 int main ( int argc, char *argv[] )
 {
