@@ -1,9 +1,10 @@
 #include <iostream> 
+#include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include <cmath>
 #include <thread>
 #include <pthread.h>
-#include <omp.h>
 #include <semaphore.h>
 #include <stack>
 using namespace std;
@@ -37,7 +38,7 @@ void Gauss_parallel(int n, int m){
         double dt, timein, timeout;
         // Метод Гаусса, прямой ход
         timein = omp_get_wtime();
-        omp_set_num_threads(THREADS); // Число потоков указано в define, их 4
+        omp_set_num_threads(4); // Число потоков указано в define, их 4
 #pragma omp parallel
         {
 #pragma omp parallel for firstprivate(j) lastprivate(i) shared(matrix, tmp) 
