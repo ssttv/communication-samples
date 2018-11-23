@@ -84,7 +84,7 @@ void test_system
    {
       b[i] = 2.0*n;
       for(j=0; j<n; j++) A[i][j] = 1.0;
-      A[i][i] = n + 1.0;
+      A[i][i] = n + 10.0;
    }
 }
 
@@ -98,47 +98,36 @@ void run_gauss_seidel_method
    int i,j,k,id,jstart,jstop;
 
    int dnp = n/p;
-   double dxi;
+   double dxi; 
+   
    double sum = 0.0;
    #pragma omp parallel \
-    shared(A, x, sum)
+    shared(A, x, sum) private(k, dxi)
 
    for(k=0; k<maxit; k++)
    {
       #pragma omp barrier
       sum = 0.0;
-      
-      #pragma omp for \
-        
+      double localSum = 0.0;
+      #pragma omp for   
       for(i=0; i<n; i++)
-      {
+      { 
+        localSum = 0.0;
          dxi = b[i];
-         #pragma omp parallel \
-            shared(A,x) \
-            private(id,j,jstart,jstop,dxi)
-         {
-            /*
-            id = omp_get_thread_num();
-            
-            jstart = id*dnp;
-            jstop = jstart + dnp;
-            dxi = 0.0;*/
-
-            for(j=0; j<n; j++)
-               dxi += A[i][j]*x[j];
-         }
+         for(j=0; j<n; j++)
+            dxi -= A[i][j]*x[j];
          dxi /= A[i][i];
          x[i] += dxi;
          localSum += ( (dxi >= 0.0) ? dxi : -dxi);
       }
       #pragma omp critical
-      sum += localSum
+      sum += localSum;
 
       #pragma omp barrier
 
       printf("%4d : %.3e\n",k,sum);
       if(sum <= epsilon) break;
    }
-   *numit = k+1;
+   //*numit = k+1;
    free(dx);
 }
