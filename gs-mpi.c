@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+#include <math.h>
+#include <mpi.h>
  
 /*
- * Команда для компиляции: mpicc -o gs-mpi gs-mpi.c
+ * Команда для компиляции: mpicc -o gs-mpi.out gs-mpi.c
  */
 
 void test_system
