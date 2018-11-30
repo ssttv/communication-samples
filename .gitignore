@@ -4,3 +4,5 @@ init
 matrix-mul
 prodcons
 reduce
+/.vscode
+/parallel-dump
