@@ -137,7 +137,7 @@ void Process(int n, double eps)
 	if (ProcRank == ProcNum - 1) i2 = n+1;
 
     if (ProcRank == 0) printf("Calculating started\n\n");
-
+    //Взять бесконечную норму погрешности и вычислить невязку на основном процесе
     //Собственно расчет
     while(1) {
         for (i = 0; i <= n; i++)
