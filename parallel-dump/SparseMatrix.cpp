@@ -131,6 +131,7 @@ double& sparse_matrix::add2(int nI, int nJ)
  * @author  Denis
  * @see     nothing
  */
+
 void sparse_matrix::del_row(int nRow)
 {
   int nK;
