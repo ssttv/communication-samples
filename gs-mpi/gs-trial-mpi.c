@@ -145,7 +145,8 @@ void Process(int n, double eps)
 
     //Взять бесконечную норму погрешности и вычислить невязку на основном процесе
     while(1) {
-        for (i = 0; i <= n; i++)-+++++            prev_x[i] = x[i];
+        for (i = 0; i <= n; i++)
+            prev_x[i] = x[i];
 
         for (i = 0; i <= n; i++) {
             ProcSum = 0.0;
