@@ -5,7 +5,7 @@
 #include <libconfig.h>
 
 /* Метод Гаусса-Зейделя на основе mpi.h 
- * Команда для компиляции: mpicc -o gs-problem-mpi.out gs-problem-mpi.c -lm
+ * Команда для компиляции: mpicc -o gs-problem-mpi-no-process.out gs-problem-mpi-no-process.c -lm
  */
 
 
@@ -21,16 +21,16 @@
 double *x;
 int ProcNum; 
 int ProcRank; 
-void Process(int, double);
 int main(int agrc, char* argv[])
 {
-    int n, i;
+    int i, j, counter, sum = 0;
+    int n;
 	double eps;
 
 	MPI_Init(&agrc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &ProcNum);
 	MPI_Comm_rank(MPI_COMM_WORLD, &ProcRank);
-
+    
 	if (ProcRank == 0) {
 		printf("Размер стороны квадратной матрицы n = ");
 		if (scanf("%d", &n) > 0) printf("OK\n");
@@ -39,6 +39,8 @@ int main(int agrc, char* argv[])
 		printf("\n");
 	}
 
+    int rem = (n*n)%ProcNum;
+
 	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&eps, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
@@ -46,19 +48,12 @@ int main(int agrc, char* argv[])
 	for (i = 0; i <= n; i++)
 		x[i] = 0;
 
-	Process(n, eps);
-
-	MPI_Finalize();
-
-	return(0);
-}
-
-void Process(int n, double eps)
-{
-    int i, j, counter = 0;
     double *a, *b, *c, *f, *p;
     double *prev_x;
-    double **A, **C;
+    double **A;
+    double **ALocal;
+    int *sendCount;
+    int *displs; 
     double norm;
     double ProcSum, TotalSum;
 
@@ -70,13 +65,27 @@ void Process(int n, double eps)
 
     prev_x = (double*)malloc((n+1)*sizeof(double));
 
-    A = (double**)malloc((n+1)*sizeof(double*));
-    for (i = 0; i <= n; ++i)
-        A[i] = (double*)malloc((n+1)*sizeof(double));
+    sendCount = malloc(sizeof(int)*ProcNum);
+    displs = malloc(sizeof(int)*ProcNum);
+    for (int i = 0; i < ProcNum; i++) {
+        sendCount[i] = (n*n)/ProcNum;
+        if (rem > 0) {
+            sendCount[i]++;
+            rem--;
+        }
 
-    C = (double**)malloc((n+1)*sizeof(double*));
+        displs[i] = sum;
+        sum += sendCount[i];
+    }
+
+    A = (double**)malloc((n+1)*sizeof(double*));
+    A[0] = (double*)malloc((n+1)*(n+1)*sizeof(double));
+    for (i = 1; i <= n; ++i)
+        A[i] = A[i - 1] + (n+1);
+
+    ALocal = (double**)malloc((n+1)*sizeof(double*));
     for (i = 0; i <= n; ++i)
-        C[i] = (double*)malloc((n+1)*sizeof(double));
+        ALocal[i] = (double*)malloc((n+1)*sizeof(double));
 
     //Столбцы заполняются данными
     b[0] = 1.;
@@ -111,25 +120,30 @@ void Process(int n, double eps)
     for (j = 0; j <= n; j++)
         A[n][j] = p[j];
         
-    for (i = 0; i <= n; i++)
-    for (j = 0; j <= n; j++) {
-        if (i == j) {
-            C[i][j] = 0;
-        }
-        else {
-            C[i][j] = -A[i][j]/A[i][i];
-        }
-    }
+    int k = (n+1) / ProcNum;
 
+    MPI_Scatterv(A, sendCount, displs, MPI_DOUBLE, ALocal, sendCount[k], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    
 	//На каждом процессе будет вычисляться частичная сумма длиной k
-	int k = (n+1) / ProcNum;
+	
 	int i1 = k * ProcRank;
 	int i2 = k * (ProcRank + 1);
 	if (ProcRank == ProcNum - 1) i2 = n+1;
-
+    
+    // Может иметь смысл вынести  следующую строчку в main, но тогда непонятно, что сделать с куском после while(1)
     if (ProcRank == 0) printf("Ведется расчет...\n\n");
     
-    //Нужно взять бесконечную норму погрешности и вычислить невязку на основном процесе
+    // Нужно передать сюда часть матрицы для обработки на отдельном процессе - остальное должно работать с уже имеющиммся кодом
+    for (i = 0; i <= n; i++)
+    for (j = 0; j <= n; j++) {
+        if (i == j) {
+            ALocal[i][j] = 0;
+        }
+        else {
+            ALocal[i][j] = -A[i][j]/A[i][i];
+        }
+    }
+
     while(1) {
         for (i = 0; i <= n; i++)
             prev_x[i] = x[i];
@@ -139,14 +153,15 @@ void Process(int n, double eps)
 
             for (j = 0; j < i; j++)
                 if ((i1 <= j) && (j < i2))
-			ProcSum += C[i][j]*x[j];
+			ProcSum += ALocal[i][j]*x[j];
 
             for (j = i; j <= n; j++)
                 if ((i1 <= j) && (j < i2))
-			ProcSum += C[i][j]*prev_x[j];
+			ProcSum += ALocal[i][j]*prev_x[j];
 
 		TotalSum = 0.0;
-		//Сборка частичных сумм ProcSum на процессе с рангом 0
+        }
+
 		MPI_Reduce(&ProcSum, &TotalSum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		x[i] = TotalSum + f[i]/A[i][i];
         }
@@ -166,5 +181,8 @@ void Process(int n, double eps)
 	MPI_Bcast(&norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
         if (norm < eps) return;
-    }
+
+    MPI_Finalize();
+
+	return(0);
 }
